@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Data Explorer</title>
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/charts.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="#overview"><span class="mark" aria-hidden="true">▦</span><span>Data Explorer<small>Local data workspace</small></span></a>
+    <nav aria-label="Workspace">
+      <a href="#overview">Overview</a><a href="#workbench">Workbench</a><a href="#records">Records</a><a href="#catalog">Data catalog</a>
+    </nav>
+    <div class="sidebar-bottom"><span class="dot"></span>CSV &amp; ZIP workspace</div>
+  </aside>
+  <div class="shell">
+  <header class="top"><span class="local">Local workspace</span><button id="theme-toggle" aria-pressed="false">Dark mode</button></header>
+  <main>
+    <div class="heading"><div><h1 id="page-title">Overview</h1><p id="description">Import files to start browsing your data.</p></div>
+      <button class="primary" id="open-import">Import files</button></div>
+    <section id="analysis-status" class="preparation" role="status" hidden>
+      <span id="analysis-message"></span><progress id="analysis-progress" max="100" aria-label="Analytical preparation"></progress>
+    </section>
+    <p id="error" class="error" role="alert" hidden></p>
+    <section id="empty" class="empty" hidden>
+      <span class="empty-icon" aria-hidden="true">▤</span>
+      <h2>No table loaded</h2>
+      <p>Choose CSV files or ZIP archives containing CSVs to build one table.</p>
+      <button id="choose-files">Choose files</button>
+    </section>
+    <section id="workspace" hidden aria-label="Records workspace">
+      <div class="toolbar">
+        <button id="toggle-filters" aria-controls="filter-panel" aria-expanded="false">Filters</button>
+        <button id="clear-filters" class="quiet" hidden>Clear filters</button>
+        <button id="open-columns">Columns</button>
+        <button id="clear-dataset" class="quiet">Clear dataset</button>
+        <button id="open-download">Download CSV</button>
+        <span id="result-count" role="status"></span>
+      </div>
+      <div id="selection-chips" class="chips" aria-label="Active filters"></div>
+      <p id="edit-status" role="status"></p>
+      <div class="table-layout">
+        <aside id="filter-panel" hidden aria-label="Column filters"><div id="filters"></div></aside>
+        <div class="table-stack">
+          <section id="overview-page" class="route-page">
+            <div id="summary-metrics" class="kpis"></div>
+            <div class="overview-grid">
+              <section class="panel">
+                <div class="panel-head"><h2>Time trend</h2><p>Select a point to filter all views.</p></div>
+                <div class="formline">
+                  <label>Date field <select id="trend-date"></select></label>
+                  <label>Period <select id="trend-period"><option value="year">Year</option><option value="quarter">Quarter</option><option value="month" selected>Month</option><option value="week">Week</option><option value="day">Day</option></select></label>
+                  <label>Metric <select id="trend-metric"><option value="n">Records</option><option value="sum">Total</option><option value="avg">Average</option><option value="min">Minimum</option><option value="max">Maximum</option></select></label>
+                  <label>Measure <select id="trend-measure"></select></label>
+                  <label>Chart <select id="trend-type"><option value="area">Area</option><option value="line">Line</option><option value="bars">Bars</option></select></label>
+                </div>
+                <p id="explore-status" class="note" role="status"></p>
+                <div id="trend-render" class="chart-area"></div>
+              </section>
+              <section class="panel">
+                <div class="panel-head"><h2>Largest groups</h2><p>Ranked by records. Select a group to filter.</p></div>
+                <div class="formline"><label>Group by <select id="overview-group"></select></label></div>
+                <div id="ranking-bars" class="ranked-bars"></div>
+                <div class="group-pager"><button id="rank-previous">Previous</button><span id="rank-page"></span><button id="rank-next">Next</button></div>
+              </section>
+            </div>
+          </section>
+          <section id="workbench-page" class="route-page" hidden>
+            <section class="panel">
+              <div class="panel-head"><h2>Group comparison</h2><p>Select a row to explore its underlying records across all views.</p></div>
+              <div class="formline">
+                <label>Group by <select id="work-group"></select></label>
+                <label>Compare with <select id="work-compare"></select></label>
+                <label>Numeric measure <select id="work-measure"></select></label>
+                <label>Rank by <select id="work-metric"><option value="n">Records</option><option value="sum">Total</option><option value="avg">Average</option><option value="min">Minimum</option><option value="max">Maximum</option></select></label>
+                <button id="download-groups">Download groups CSV</button>
+              </div>
+              <p id="work-status" class="note" role="status"></p>
+              <div class="group-scroll"><table id="group-table" aria-label="Grouped records"><thead></thead><tbody></tbody></table></div>
+              <div class="group-pager"><button id="group-previous">Previous</button><span id="group-page"></span><button id="group-next">Next</button></div>
+            </section>
+          </section>
+          <section id="records-page" hidden>
+          <div class="scroll" tabindex="0" aria-label="Scrollable records grid"><table id="records" aria-label="Records">
+            <thead></thead><tbody></tbody>
+          </table></div>
+          <p id="no-results" class="no-results" hidden>No records match. Adjust your filters to see more rows.</p>
+          <div class="pagination">
+            <label>Rows per page <select id="page-size"><option>25</option><option>50</option><option>100</option></select></label>
+            <div><button id="previous" aria-label="Previous page">‹</button><span id="page-status"></span><button id="next" aria-label="Next page">›</button></div>
+          </div>
+          </section>
+          <section id="catalog-page" class="route-page" hidden>
+            <section class="panel"><div class="panel-head"><h2>Imported sources</h2></div><div id="source-inventory"></div></section>
+            <section class="panel"><div class="panel-head"><h2>Fields</h2></div><div class="group-scroll"><table id="field-catalog"><thead><tr><th>Field</th><th>Type</th><th>Missing cells</th></tr></thead><tbody></tbody></table></div></section>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+  </div>
+  <dialog id="import-dialog" aria-labelledby="import-title">
+    <form id="import-form">
+      <div class="dialog-header"><h2 id="import-title">Import files</h2><button type="button" id="close-import" aria-label="Close import">×</button></div>
+      <p>Select CSV files and ZIP archives in any combination. CSVs must have the same columns and compatible types.</p>
+      <p id="replace-note" hidden>A successful import replaces the current table.</p>
+      <label class="picker">Add CSV or ZIP files<input id="files" type="file" accept=".csv,.zip" multiple></label>
+      <ul id="file-list"></ul>
+      <section id="import-progress" aria-label="Import progress" hidden>
+        <div class="progress-heading"><strong id="import-phase"></strong><span id="import-percent"></span></div>
+        <progress id="import-bar" max="100" aria-label="Upload progress"></progress>
+        <p id="import-current"></p>
+        <p id="import-counts" role="status" aria-live="polite"></p>
+      </section>
+      <p id="import-error" class="error" role="alert" hidden></p>
+      <div class="actions"><button id="submit-import" class="primary" disabled>Import table</button></div>
+    </form>
+  </dialog>
+  <dialog id="record-dialog" aria-labelledby="record-title">
+    <div class="dialog-header"><h2 id="record-title">Record</h2><button id="close-record" aria-label="Close record">×</button></div>
+    <dl id="record-fields"></dl>
+  </dialog>
+  <dialog id="edit-dialog" aria-labelledby="edit-title">
+    <form id="edit-form">
+      <div class="dialog-header"><h2 id="edit-title">Edit cell</h2><button type="button" id="close-edit" aria-label="Close editor">×</button></div>
+      <label class="edit-field">Value<textarea id="edit-value" rows="7" spellcheck="false"></textarea></label>
+      <label class="check"><input type="checkbox" id="edit-missing"> Mark as missing</label>
+      <p id="edit-error" class="error" role="alert" hidden></p>
+      <div class="actions"><button class="primary" id="save-cell">Save cell</button></div>
+    </form>
+  </dialog>
+  <dialog id="columns-dialog" aria-labelledby="columns-title">
+    <div class="dialog-header"><h2 id="columns-title">Included columns</h2><button id="close-columns" aria-label="Close columns">×</button></div>
+    <p>Choose which columns appear in the grid and filtered CSV. Column filters still apply.</p>
+    <button id="show-all-columns">Include all</button>
+    <div id="column-options"></div>
+    <div class="actions"><button class="primary" id="apply-columns">Apply columns</button></div>
+  </dialog>
+  <dialog id="download-dialog" aria-labelledby="download-title">
+    <div class="dialog-header"><h2 id="download-title">Download CSV</h2><button id="close-download" aria-label="Close downloads">×</button></div>
+    <p id="download-error" class="error" role="alert" hidden></p>
+    <div class="download-options">
+      <div><button id="download-master">Download master CSV</button><p>All edited rows and columns.</p></div>
+      <div><button id="download-filtered">Download filtered CSV</button><p>Matching rows in the current sort order, with included columns.</p></div>
+    </div>
+  </dialog>
+  <dialog id="clear-dialog" aria-labelledby="clear-title">
+    <div class="dialog-header"><h2 id="clear-title">Clear current dataset?</h2><button id="close-clear" aria-label="Close clear dataset">×</button></div>
+    <p>This removes the app’s imported table, local edits, and prepared analysis. Download the edited master CSV first if you want to keep a copy.</p>
+    <p id="clear-error" class="error" role="alert" hidden></p>
+    <div class="actions"><button id="clear-export">Download master CSV</button><button class="danger" id="confirm-clear">Clear dataset</button></div>
+  </dialog>
+</body>
+</html>
